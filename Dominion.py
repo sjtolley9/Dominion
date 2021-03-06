@@ -107,7 +107,7 @@ class Colony(Victory):
         Victory.__init__(self, "Colony", 11, 10)
 
 class Coin(Card):
-    def __init__(self, name, val, cost):
+    def __init__(self, name, cost, val):
         Card.__init__(self, name, "coin", cost, val)
 
 class Copper(Coin):
@@ -210,10 +210,19 @@ class Player():
     def get_buys(self):
         return self.buys
     def play_money(self):
-        while this.hand.has_cat("coin"):
+        while self.hand.has_cat("coin"):
             card = input("Choose a Treasure to play: ")
             if card == "":
+                print("Finished Playing Treasure")
                 break
+            if not self.hand.has(card):
+                print(f"Hand does not contain {card}")
+                continue
+            c = self.hand.remove(card)
+            if not "coin" in c.categories:
+                self.hand.add_card(c)
+                continue
+            print(f"{c.name} worth {c.value}")
     def gain_victory_point(self, N=1):
         pass
     def count_victory_points(self):

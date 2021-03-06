@@ -39,4 +39,4 @@ print_pile(player.hand, player.hand.name)
 print_pile(trash, trash.name)
 print_pile(player.deck, "DECK")
 
-
+player.play_money()
