@@ -25,6 +25,8 @@ class CardPile():
             return None
         self.cards = self.cards[:-N]
         return top_cards
+    def get_top_card(self):
+        return self.cards.pop()
     def add_card(self, card):
         self.cards.append(card)
     def add_cards(self, crds):
@@ -71,6 +73,19 @@ class CardPile():
         return None
     def __str__(self):
         return ",".join([x.name for x in self.cards])
+    def category_subset(self, cat):
+        result = CardPile("Sublist")
+        i = 0
+        while i < len(self.cards):
+            if cat in self.cards[i].categories:
+                result.add_card(self.cards.pop(i))
+            else:
+                i += 1
+        return result
+
+class Game():
+    def __init__(self):
+        self.trash = CardPile("Trash")
 
 class Card():
     def __init__(self, name, categories, cost=0, value=0, victory_points=0):
@@ -92,6 +107,20 @@ class ActionCard(Card):
     def action(self, player, game):
         pass
 
+class Cellar(ActionCard):
+    def __init__(self):
+        ActionCard.__init__(self, "Cellar", 2)
+    def action(self, player, game):
+        player.add_actions(1)
+        a, b = player.move_from(player.hand)
+        player.draw_card(b)
+
+class Chapel(ActionCard):
+    def __init__(self):
+        ActionCard.__init__(self, "Chapel", 2)
+    def action(self, player, game):
+        player.move_from(player.hand, dest=game.trash, limit=4)
+
 class Festival(ActionCard):
     def __init__(self):
         ActionCard.__init__(self, "Festival", 5)
@@ -100,12 +129,26 @@ class Festival(ActionCard):
         player.add_buys(1)
         player.add_money(2)
 
+class Harbinger(ActionCard):
+    def __init__(self):
+        ActionCard.__init__(self, "Harbinger", 3)
+    def action(self, player, game):
+        player.draw_card(1)
+        player.add_actions(1)
+        player.move_from(player.discard, 1, dest=player.deck, action="Topdeck")
+
 class Laboratory(ActionCard):
     def __init__(self):
         ActionCard.__init__(self, "Laboratory", 5)
     def action(self, player, game):
         player.draw_card(2)
         player.add_actions(1)
+
+class Library(ActionCard):
+    def __init__(self):
+        ActionCard.__init__(self, "Library", 5)
+    def action(self, player, game):
+        player.draw_to_N_skip(7, "action")
 
 class Market(ActionCard):
     def __init__(self):
@@ -116,11 +159,71 @@ class Market(ActionCard):
         player.add_buys(1)
         player.add_money(1)
 
+class Merchant(ActionCard):
+    def __init__(self):
+        ActionCard.__init__(self,"Merchant", 3)
+    def action(self, player, game):
+        player.draw_card()
+        player.add_actions(1)
+
+        def mod(player):
+            player.money += 1
+
+        if "Silver" in player.money_mods:
+            player.money_mods["Silver"].append(mod)
+        else:
+            player.money_mods["Silver"] = [mod]
+
+
+class Moneylender(ActionCard):
+    def __init__(self):
+        ActionCard.__init__(self, "Moneylender", 4)
+    def action(self, player, game):
+        if player.hand.has("Copper"):
+            yesno = input("Type `yes` to trash copper : ")
+            if yesno == "yes":
+                copper = player.hand.remove("Copper")
+                game.trash.add_card(copper)
+                player.money += 3
+
+class Sentry(ActionCard):
+    def __init__(self):
+        ActionCard.__init__(self, "Sentry", 5)
+    def action(self, player, game):
+        player.draw_card(1)
+        player.add_actions(1)
+        cards = player.get_top_cards(2)
+        cards = player.move_from(cards)
+        cards = player.move_from(cards, dest=game.trash, action="Trash")
+        player.move_from(cards, len(cards), dest=player.deck, action="Topdeck")
+
 class Smithy(ActionCard):
     def __init__(self):
         ActionCard.__init__(self, "Smithy", 4)
     def action(self, player, game):
         player.draw_card(3)
+
+class ThroneRoom(ActionCard):
+    def __init__(self):
+        ActionCard.__init__(self, "Throne Room", 4)
+    def action(self, player, game):
+        card = player.hand_card_prompt_category("action")
+        if card != None:
+            player.play_action(card, game, False)
+            player.play_action(card, game, False)
+
+class Vassal(ActionCard):
+    def __init__(self):
+        ActionCard.__init__(self,"Vassal", 3)
+    def action(self, player, game):
+        player.money += 2
+        card = player.deck.get_top_card()
+        if "action" in card.categories:
+            yesno = input(f"Type `yes` to play {card.name}, otherwise discard : ")
+            if yesno == "yes":
+                player.play_action(card, game, False)
+                return
+        player.discard.add_card(card)
 
 class Village(ActionCard):
     def __init__(self):
@@ -200,6 +303,10 @@ class Player():
         self.supply = supply
         self.trash = trash
 
+        self.money_mods = {
+
+                }
+
         ~self.deck
         
         self.hand.add_cards(self.deck.get_top_cards(5))
@@ -244,6 +351,21 @@ class Player():
     def draw_to_N(self, N):
         while len(self.hand) < N and len(self.deck) > 0:
             self.draw_card()
+    def draw_to_N_skip(self, N, cat, choose=True):
+        while len(self.hand) < N and len(self.deck) > 0:
+            c = self.deck.get_top_card()
+
+            if cat in c.categories:
+                if choose and input(f"Skip {c.name}? : ") == "yes":
+                    self.aside.add_card(c)
+                    continue
+
+            self.hand.add_card(c)
+            
+            if len(self.deck) == 0:
+                self.replenish_deck()
+        print(self.hand)
+        self.discard.add_cards(self.aside)
     def discard_hand(self):
         self.discard.add_cards(self.hand)
     def trash_card(self, N=1, category=None, required=False):
@@ -261,12 +383,19 @@ class Player():
         return self.actions
     def get_buys(self):
         return self.buys
-    def play_money(self):
+    def treasure_phase(self):
+
         while self.hand.has_cat("coin"):
             print(f"Hand : {self.hand}")
             card = input("Choose a Treasure to play: ")
             if card == "":
                 print("Finished Playing Treasure")
+                break
+            if card == "ALL":
+                treasures = self.hand.category_subset("coin")
+                for c in treasures:
+                    if "coin" in c.categories:
+                        self.play_treasure(c)
                 break
             if not self.hand.has(card):
                 print(f"Hand does not contain {card}")
@@ -275,10 +404,18 @@ class Player():
             if not "coin" in c.categories:
                 self.hand.add_card(c)
                 continue
-            self.money += c.value
-            self.in_play.add_card(c)
-            c.treasure_action(self)
+            
+            self.play_treasure(c)
+            
         print(f"You have {self.money} money")
+    def play_treasure(self, c):
+        self.money += c.value
+        self.in_play.add_card(c)
+        c.treasure_action(self)
+
+        if c.name in self.money_mods:
+            for mod in self.money_mods[c.name]:
+                mod(self)
 
     def gain_victory_point(self, N=1):
         pass
@@ -296,11 +433,70 @@ class Player():
             c = self.hand.remove(card)
             if "action" not in c.categories:
                 print(f"{card} is not an action card")
+            self.play_action(c, game)
+    def play_action(self, card, game, decrement=True):
+        self.in_play.add_card(card)
+        if decrement:
             self.actions -= 1
-            c.action(self, game)
+        card.action(self, game)
+    def hand_card_prompt_category(self, cat, optional=True):
+        valid_options = self.hand.category_subset(cat)
+        if len(valid_options) == 0:
+            print("No valid cards to choose from")
+            self.hand.add_cards(valid_options)
+            return None
+        print(valid_options)
+        while 1:
+            card = input(f"Choose a(n) {cat} card, press return for none : ")
+            if optional and card == "":
+                self.hand.add_cards(valid_options)
+                return None
+            if valid_options.has(card):
+                return valid_options.remove(card)
+
+
     def add_actions(self, N):
         self.actions += N
     def add_buys(self, N):
         self.buys += N
     def add_money(self, N):
         self.money += N
+    def discard_card(self, card):
+        self.discard.add_card(card)
+    def discard_cards(self, cards):
+        self.discard.add_cards(cards)
+    def move_from(self, pile, N=-1, dest=None, action="Discard", limit=1000):
+        if dest == None:
+            dest = self.discard
+        num = 0
+        while (N == -1 or N > 0) and len(pile) > 0:
+            print(f"{action} from : ")
+            print(pile)
+            card = ""
+            if N == -1:
+                card = input("Choose card, press enter to Continue : ")
+            else:
+                card = input("Choose card : ")
+            if N == -1 and card == "":
+                break
+            if pile.has(card):
+                c = pile.remove(card)
+                if N != -1:
+                    N -= 1
+                num += 1
+                dest.add_card(c)
+            if num == limit:
+                break
+        return pile, num
+    def end_turn(self):
+        self.discard.add_cards(self.in_play)
+        self.discard.add_cards(self.hand)
+        self.draw_card(5)
+
+        self.money = 0
+        self.actions = 1
+        self.buys = 1
+    def get_top_cards(self, N):
+        if len(self.deck) < N:
+            self.replenish_deck()
+        return self.deck.get_top_cards(N)

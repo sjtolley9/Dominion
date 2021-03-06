@@ -1,7 +1,7 @@
 import Dominion
 from Dominion import Platinum, Gold, Silver, Copper, Estate, Duchy, Province, Colony
-def print_pile(cards, name):
-    print(f"Cards in {name}")
+def print_pile(cards):
+    print(f"Cards in {cards.name}")
     for i in cards:
         print(i.name)
 
@@ -25,10 +25,20 @@ trash = Dominion.CardPile("TRASH")
 supply = Dominion.Supply()
 
 player = Dominion.Player("Sterling", supply, trash)
-player.hand.add_card(Dominion.Laboratory())
-player.hand.add_card(Dominion.Market())
-player.hand.add_card(Dominion.Smithy())
-player.hand.add_card(Dominion.Village())
+#player.hand.add_card(Dominion.ThroneRoom())
+player.hand.add_card(Dominion.Chapel())
 
-player.action_phase(None)
-player.play_money()
+
+game = Dominion.Game()
+
+player.action_phase(game)
+player.treasure_phase()
+player.end_turn()
+player.end_turn()
+player.end_turn()
+player.end_turn()
+player.end_turn()
+
+#print_pile(player.discard)
+#print_pile(player.deck)
+#print_pile(player.hand)
