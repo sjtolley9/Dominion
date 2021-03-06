@@ -1,0 +1,80 @@
+List of things that cards need to do
+	- Be Treasure Cards
+	- Be Victory Cards
+		- Have special point conditions (gardens)
+	- Be Action Cards
+		- Gain card(s) (up to X coins)
+		- Topdeck card(s)
+		- Give actions
+		- Give buys
+		- Give coins
+		- Affect other players
+	- Reaction cards
+		- Different triggers
+	- Stick around 1 turn
+	- Be Mixed type cards
+	- Throne Room
+
+List of things players need to do
+	- Track Status
+		- Coins
+		- Buys
+		- Actions
+		- Cards owned
+		- Merchants played
+			* member variable
+			* count merchants in play
+	- Draw N cards
+		- Aside specific type
+	- Draw to N in hand
+	- Gain card(s) (up to X coins)
+		- Gain a specific card
+		- Specify type
+		- Exactly X coins
+		- Destination
+			- Hand
+			- Deck
+			- Discard
+	- Topdeck card(s)
+	- Discard N cards
+		- Return number discarded
+		- Optional/Non-Optional
+		- Specify type
+	- Discard to N in hand
+	- Trash N cards
+		- Specify type
+		- Required
+		- Return True if succeeded
+		- Track total cost of cards
+	- Reveal cards
+		- Location
+			- Hand
+			- Deck
+			- Discard
+		- Specify type
+			- Return False no type
+		- Until type
+	- Look at top N cards
+		- Be able to discard
+		- Be able to trash
+	- When playing money
+		- Money actions
+	- When buying/gaining cards
+		- Check for specific cards in play
+			- And do something
+		- Buy restrictions
+	- Reduce cost
+		- Of all cards
+		- Of type
+	- Gain a victory point
+
+Card Span
+	Used for hand, discard, reveals
+	- All same card capabilities listed for player
+
+Game should
+	- Distribute curses
+	- Track Trade route if in play
+
+Other things to track
+	- Number of supply piles emptied
