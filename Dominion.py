@@ -81,10 +81,53 @@ class Card():
         self.victory_points = victory_points
     def action(self, player, game):
         pass
-    def treasure_action(self, player, game):
+    def treasure_action(self, player):
         pass
     def gain_event(self, player, card):
         pass
+
+class ActionCard(Card):
+    def __init__(self, name, cost):
+        Card.__init__(self, name, "action", cost, 0)
+    def action(self, player, game):
+        pass
+
+class Festival(ActionCard):
+    def __init__(self):
+        ActionCard.__init__(self, "Festival", 5)
+    def action(self, player, game):
+        player.add_actions(2)
+        player.add_buys(1)
+        player.add_money(2)
+
+class Laboratory(ActionCard):
+    def __init__(self):
+        ActionCard.__init__(self, "Laboratory", 5)
+    def action(self, player, game):
+        player.draw_card(2)
+        player.add_actions(1)
+
+class Market(ActionCard):
+    def __init__(self):
+        ActionCard.__init__(self,"Market", 5)
+    def action(self, player, game):
+        player.draw_card()
+        player.add_actions(1)
+        player.add_buys(1)
+        player.add_money(1)
+
+class Smithy(ActionCard):
+    def __init__(self):
+        ActionCard.__init__(self, "Smithy", 4)
+    def action(self, player, game):
+        player.draw_card(3)
+
+class Village(ActionCard):
+    def __init__(self):
+        ActionCard.__init__(self,"Village", 3)
+    def action(self, player, game):
+        player.draw_card()
+        player.add_actions(2)
 
 class Victory(Card):
     def __init__(self, name, cost, vp):
@@ -126,6 +169,13 @@ class Platinum(Coin):
     def __init__(self):
         Coin.__init__(self, "Platinum", 9, 5)
 
+class Bank(Coin):
+    def __init__(self):
+        Coin.__init__(self, "Bank", 7, 0)
+    def treasure_action(self, player):
+        for i in player.in_play:
+            if "coin" in i.categories:
+                player.money += 1
 
 class Utils():
     def make_deck(name):
@@ -161,6 +211,8 @@ class Player():
     def draw_card(self, N=1):
         if len(self.deck) < N:
             self.replenish_deck()
+        if len(self.deck) < N:
+            return
         self.hand.add_cards(self.deck.get_top_cards(N))
     def pick_cards_from(self, pile, N=1):
         assert isinstance(pile, CardPile)
@@ -211,6 +263,7 @@ class Player():
         return self.buys
     def play_money(self):
         while self.hand.has_cat("coin"):
+            print(f"Hand : {self.hand}")
             card = input("Choose a Treasure to play: ")
             if card == "":
                 print("Finished Playing Treasure")
@@ -222,8 +275,32 @@ class Player():
             if not "coin" in c.categories:
                 self.hand.add_card(c)
                 continue
-            print(f"{c.name} worth {c.value}")
+            self.money += c.value
+            self.in_play.add_card(c)
+            c.treasure_action(self)
+        print(f"You have {self.money} money")
+
     def gain_victory_point(self, N=1):
         pass
     def count_victory_points(self):
         pass
+    def action_phase(self, game):
+        while self.actions > 0 and self.hand.has_cat("action"):
+            print(f"Hand : {self.hand}")
+            print(f"You have {self.actions} left")
+            card = input("Choose an action card: ")
+            if card == "":
+                break
+            if not self.hand.has(card):
+                print(f"Hand does not have {card}")
+            c = self.hand.remove(card)
+            if "action" not in c.categories:
+                print(f"{card} is not an action card")
+            self.actions -= 1
+            c.action(self, game)
+    def add_actions(self, N):
+        self.actions += N
+    def add_buys(self, N):
+        self.buys += N
+    def add_money(self, N):
+        self.money += N

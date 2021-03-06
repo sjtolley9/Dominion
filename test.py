@@ -25,18 +25,10 @@ trash = Dominion.CardPile("TRASH")
 supply = Dominion.Supply()
 
 player = Dominion.Player("Sterling", supply, trash)
+player.hand.add_card(Dominion.Laboratory())
+player.hand.add_card(Dominion.Market())
+player.hand.add_card(Dominion.Smithy())
+player.hand.add_card(Dominion.Village())
 
-print(len(player.deck))
-print_pile(player.hand, player.hand.name)
-
-player.discard_hand()
-player.draw_card(5)
-
-player.discard_hand()
-player.draw_card(5)
-
-print_pile(player.hand, player.hand.name)
-print_pile(trash, trash.name)
-print_pile(player.deck, "DECK")
-
+player.action_phase(None)
 player.play_money()
