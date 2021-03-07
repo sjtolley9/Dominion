@@ -1,5 +1,7 @@
 import random
 
+kingdom_cards = []
+
 class CardPileIterator():
     def __init__(self, card_pile):
         self._card_pile = card_pile
@@ -84,8 +86,12 @@ class CardPile():
         return result
 
 class Game():
-    def __init__(self):
+    def __init__(self, players=2):
         self.trash = CardPile("Trash")
+        self.players = []
+        self.supply = Supply()
+        for i in range(players):
+            self.players.append(Player(f"Player {i+1}", self.supply, self.trash))
 
 class Card():
     def __init__(self, name, categories, cost=0, value=0, victory_points=0):
@@ -94,6 +100,7 @@ class Card():
         self.cost = cost
         self.value = value
         self.victory_points = victory_points
+        self.sort_order = 0
     def action(self, player, game):
         pass
     def treasure_action(self, player):
@@ -104,6 +111,7 @@ class Card():
 class ActionCard(Card):
     def __init__(self, name, cost):
         Card.__init__(self, name, "action", cost, 0)
+        self.sort_order = 3
     def action(self, player, game):
         pass
 
@@ -115,11 +123,15 @@ class Cellar(ActionCard):
         a, b = player.move_from(player.hand)
         player.draw_card(b)
 
+kingdom_cards.append(Cellar())
+
 class Chapel(ActionCard):
     def __init__(self):
         ActionCard.__init__(self, "Chapel", 2)
     def action(self, player, game):
         player.move_from(player.hand, dest=game.trash, limit=4)
+
+kingdom_cards.append(Chapel())
 
 class Festival(ActionCard):
     def __init__(self):
@@ -129,6 +141,8 @@ class Festival(ActionCard):
         player.add_buys(1)
         player.add_money(2)
 
+kingdom_cards.append(Festival())
+
 class Harbinger(ActionCard):
     def __init__(self):
         ActionCard.__init__(self, "Harbinger", 3)
@@ -137,6 +151,8 @@ class Harbinger(ActionCard):
         player.add_actions(1)
         player.move_from(player.discard, 1, dest=player.deck, action="Topdeck")
 
+kingdom_cards.append(Harbinger())
+
 class Laboratory(ActionCard):
     def __init__(self):
         ActionCard.__init__(self, "Laboratory", 5)
@@ -144,11 +160,15 @@ class Laboratory(ActionCard):
         player.draw_card(2)
         player.add_actions(1)
 
+kingdom_cards.append(Laboratory())
+
 class Library(ActionCard):
     def __init__(self):
         ActionCard.__init__(self, "Library", 5)
     def action(self, player, game):
         player.draw_to_N_skip(7, "action")
+
+kingdom_cards.append(Library())
 
 class Market(ActionCard):
     def __init__(self):
@@ -158,6 +178,8 @@ class Market(ActionCard):
         player.add_actions(1)
         player.add_buys(1)
         player.add_money(1)
+
+kingdom_cards.append(Market())
 
 class Merchant(ActionCard):
     def __init__(self):
@@ -174,6 +196,7 @@ class Merchant(ActionCard):
         else:
             player.money_mods["Silver"] = [mod]
 
+kingdom_cards.append(Merchant())
 
 class Moneylender(ActionCard):
     def __init__(self):
@@ -186,6 +209,8 @@ class Moneylender(ActionCard):
                 game.trash.add_card(copper)
                 player.money += 3
 
+kingdom_cards.append(Moneylender())
+
 class Sentry(ActionCard):
     def __init__(self):
         ActionCard.__init__(self, "Sentry", 5)
@@ -197,11 +222,15 @@ class Sentry(ActionCard):
         cards = player.move_from(cards, dest=game.trash, action="Trash")
         player.move_from(cards, len(cards), dest=player.deck, action="Topdeck")
 
+kingdom_cards.append(Sentry())
+
 class Smithy(ActionCard):
     def __init__(self):
         ActionCard.__init__(self, "Smithy", 4)
     def action(self, player, game):
         player.draw_card(3)
+
+kingdom_cards.append(Smithy())
 
 class ThroneRoom(ActionCard):
     def __init__(self):
@@ -211,6 +240,8 @@ class ThroneRoom(ActionCard):
         if card != None:
             player.play_action(card, game, False)
             player.play_action(card, game, False)
+
+kingdom_cards.append(ThroneRoom())
 
 class Vassal(ActionCard):
     def __init__(self):
@@ -225,12 +256,16 @@ class Vassal(ActionCard):
                 return
         player.discard.add_card(card)
 
+kingdom_cards.append(Vassal())
+
 class Village(ActionCard):
     def __init__(self):
         ActionCard.__init__(self,"Village", 3)
     def action(self, player, game):
         player.draw_card()
         player.add_actions(2)
+
+kingdom_cards.append(Village())
 
 class Victory(Card):
     def __init__(self, name, cost, vp):
@@ -239,14 +274,22 @@ class Victory(Card):
 class Estate(Victory):
     def __init__(self):
         Victory.__init__(self, "Estate", 2, 1)
+        self.sort_order = 1
 
 class Duchy(Victory):
     def __init__(self):
         Victory.__init__(self, "Duchy", 5, 3)
+        self.sort_order = 1
 
 class Province(Victory):
     def __init__(self):
         Victory.__init__(self, "Province", 8, 6)
+        self.sort_order = 1
+
+class Curse(Victory):
+    def __init__(self):
+        Victory.__init__(self, "Curse", 0, -1)
+        self.sort_order = 2
 
 class Colony(Victory):
     def __init__(self):
@@ -255,6 +298,7 @@ class Colony(Victory):
 class Coin(Card):
     def __init__(self, name, cost, val):
         Card.__init__(self, name, "coin", cost, val)
+        self.sort_order = 0
 
 class Copper(Coin):
     def __init__(self):
@@ -285,9 +329,51 @@ class Utils():
         cards = [Copper()]*7 + [Estate()]*3
         return CardPile(name, cards)
 
+class SupplyPile():
+    def __init__(self, card, gt_2=False):
+        self.card = card
+        self.count = 10
+        self.sort_order = card.sort_order
+        self.name = card.name
+        self.categories = card.categories
+        if "victory" in card.categories:
+            self.count = 8+4*gt_2
+        self.cost = card.cost
+        self.updated_cost = card.cost
+    def refresh(self):
+        self.updated_cost = self.cost
+
+def cheaper_actions(sp):
+    if "action" in sp.categories:
+        sp.updated_cost -= 1
+        sp.updated_cost = max(sp.updated_cost, 0)
+
 class Supply():
-    def __init__(self):
-        pass
+    def __init__(self, gt_2=False):
+        piles = [Copper(),Silver(),Gold(),Estate(),Duchy(),Province(),Curse()]
+        random.shuffle(kingdom_cards)
+        piles = piles + kingdom_cards[:10]
+
+        self.piles = [SupplyPile(card) for card in piles]
+        self.sort_supply()
+    def print_supply(self):
+        o = False
+        print(f"{'Card':15}{'Cost':>7}{'Remaining':>14}")
+        for i in self.piles:
+            if not o and "action" in i.card.categories:
+                o = True
+                print("-----------------")
+            print(f"{i.name:15}{i.updated_cost:7}{i.count:>7}")
+    def sort_supply(self):
+        def sort_func(a):
+            return a.sort_order*100000+a.updated_cost
+        self.piles.sort(key=sort_func)
+    def apply_cost_mod(self, mod):
+        for i in self.piles:
+            cheaper_actions(i)
+    def refresh_costs(self):
+        for i in self.piles():
+            i.refresh()
 
 class Player():
     def __init__(self, name, supply, trash):
@@ -430,6 +516,7 @@ class Player():
                 break
             if not self.hand.has(card):
                 print(f"Hand does not have {card}")
+                continue
             c = self.hand.remove(card)
             if "action" not in c.categories:
                 print(f"{card} is not an action card")
@@ -496,6 +583,8 @@ class Player():
         self.money = 0
         self.actions = 1
         self.buys = 1
+
+        self.money_mods = {}
     def get_top_cards(self, N):
         if len(self.deck) < N:
             self.replenish_deck()

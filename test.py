@@ -30,6 +30,7 @@ player.hand.add_card(Dominion.Chapel())
 
 
 game = Dominion.Game()
+game.supply.print_supply()
 
 player.action_phase(game)
 player.treasure_phase()
