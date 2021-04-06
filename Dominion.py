@@ -218,8 +218,8 @@ class Sentry(ActionCard):
         player.draw_card(1)
         player.add_actions(1)
         cards = player.get_top_cards(2)
-        cards = player.move_from(cards)
-        cards = player.move_from(cards, dest=game.trash, action="Trash")
+        cards, m = player.move_from(cards)
+        cards, m = player.move_from(cards, dest=game.trash, action="Trash")
         player.move_from(cards, len(cards), dest=player.deck, action="Topdeck")
 
 kingdom_cards.append(Sentry())
@@ -247,7 +247,7 @@ class Vassal(ActionCard):
     def __init__(self):
         ActionCard.__init__(self,"Vassal", 3)
     def action(self, player, game):
-        player.money += 2
+        player.add_money(2)
         card = player.deck.get_top_card()
         if "action" in card.categories:
             yesno = input(f"Type `yes` to play {card.name}, otherwise discard : ")

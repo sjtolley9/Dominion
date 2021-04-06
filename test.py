@@ -27,7 +27,9 @@ supply = Dominion.Supply()
 player = Dominion.Player("Sterling", supply, trash)
 #player.hand.add_card(Dominion.ThroneRoom())
 player.hand.add_card(Dominion.Chapel())
+player.hand.add_card(Dominion.Vassal())
 
+player.deck.add_card(Dominion.Sentry())
 
 game = Dominion.Game()
 game.supply.print_supply()
